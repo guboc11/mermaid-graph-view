@@ -1,0 +1,252 @@
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0a0a0f;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  background: #100e1e;
+  border-bottom: 1px solid #1e1a35;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #c4b5fd;
+  letter-spacing: 0.01em;
+}
+
+.app-logo {
+  color: #7c3aed;
+  font-size: 18px;
+}
+
+.app-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-stats {
+  font-size: 12px;
+  color: #4b5563;
+  font-family: monospace;
+}
+
+.reset-btn {
+  font-size: 12px;
+  color: #6d28d9;
+  background: transparent;
+  border: 1px solid #2d1a5e;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  background: #1e1033;
+  border-color: #5b21b6;
+  color: #a78bfa;
+}
+
+/* ── Main ─────────────────────────────────────────────────────────────────── */
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Editor Panel ─────────────────────────────────────────────────────────── */
+.editor-panel {
+  width: 34%;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1e1a35;
+  background: #0c0b18;
+  flex-shrink: 0;
+}
+
+.panel-header {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b21b6;
+  background: #100e1e;
+  border-bottom: 1px solid #1e1a35;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.editor-wrapper {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-textarea {
+  flex: 1;
+  width: 100%;
+  background: #0c0b18;
+  color: #c4b5fd;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.75;
+  padding: 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  tab-size: 4;
+  caret-color: #7c3aed;
+}
+
+.editor-textarea::selection {
+  background: rgba(124, 58, 237, 0.25);
+}
+
+.editor-textarea::placeholder {
+  color: #2d2550;
+}
+
+/* ── Graph Panel ──────────────────────────────────────────────────────────── */
+.graph-panel {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: #0a0a0f;
+}
+
+.graph-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.graph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #0a0a0f;
+}
+
+/* ── Empty State ──────────────────────────────────────────────────────────── */
+.graph-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #1e1a35;
+  pointer-events: none;
+  user-select: none;
+}
+
+.graph-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.graph-empty p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ── Controls ─────────────────────────────────────────────────────────────── */
+.graph-controls {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 20;
+}
+
+.ctrl-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #100e1e;
+  border: 1px solid #1e1a35;
+  border-radius: 6px;
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.ctrl-btn:hover {
+  background: #1a1033;
+  border-color: #5b21b6;
+  color: #a78bfa;
+}
+
+.fit-btn {
+  font-size: 14px;
+}
+
+/* ── Hint ─────────────────────────────────────────────────────────────────── */
+.graph-hint {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  font-size: 10px;
+  color: #2a2040;
+  font-family: monospace;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Legend ───────────────────────────────────────────────────────────────── */
+.graph-legend {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  background: rgba(10, 8, 20, 0.88);
+  border: 1px solid #1e1a35;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  backdrop-filter: blur(4px);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-family: monospace;
+  font-size: 10px;
+}
