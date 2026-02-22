@@ -204,6 +204,30 @@
   font-size: 14px;
 }
 
+.ctrl-divider {
+  height: 1px;
+  background: #1e1a35;
+  margin: 2px 0;
+}
+
+.ctrl-btn--text {
+  width: auto;
+  padding: 0 6px;
+  font-size: 10px;
+  font-family: monospace;
+  min-width: 30px;
+}
+
+.ctrl-btn--ok {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.ctrl-btn--err {
+  color: #f43f5e;
+  border-color: #f43f5e;
+}
+
 /* ── Hint ─────────────────────────────────────────────────────────────────── */
 .graph-hint {
   position: absolute;

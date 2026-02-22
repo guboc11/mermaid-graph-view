@@ -59,7 +59,10 @@ export default function App() {
     [code]
   );
 
-  const handleReset = () => setGraphKey((k) => k + 1);
+  const handleReset = () => {
+    localStorage.removeItem('mgv-layout');
+    setGraphKey((k) => k + 1);
+  };
 
   return (
     <div className="app">

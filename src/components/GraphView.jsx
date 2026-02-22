@@ -1,7 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import * as d3 from 'd3';
 
-const NODE_RADIUS = 26;
 
 const REL_STYLES = {
   inheritance: { color: '#f97316', dashed: false, label: '상속' },
@@ -13,11 +12,20 @@ const REL_STYLES = {
   link: { color: '#6b7280', dashed: false, label: '링크' },
 };
 
+const STORAGE_KEY = 'mgv-layout';
+
+const readSavedLayout = () => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
+  catch { return null; }
+};
+
 export default function GraphView({ nodes, links, graphKey }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const zoomRef = useRef(null);
-  const hasInitialFit = useRef(false);
+  const simNodesRef = useRef([]);
+  const [localKey, setLocalKey] = useState(0);
+  const [saveStatus, setSaveStatus] = useState(null); // null | 'saved' | 'no-data'
 
   const handleFit = useCallback(() => {
     if (!zoomRef.current || !svgRef.current) return;
@@ -37,6 +45,27 @@ export default function GraphView({ nodes, links, graphKey }) {
       .transition()
       .duration(600)
       .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    if (simNodesRef.current.length === 0) return;
+    const positions = {};
+    simNodesRef.current.forEach((n) => {
+      positions[n.id] = { x: Math.round(n.x || 0), y: Math.round(n.y || 0) };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus(null), 2000);
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    const saved = readSavedLayout();
+    if (!saved) {
+      setSaveStatus('no-data');
+      setTimeout(() => setSaveStatus(null), 2000);
+      return;
+    }
+    setLocalKey((k) => k + 1);
   }, []);
 
   const handleZoomIn = useCallback(() => {
@@ -64,14 +93,44 @@ export default function GraphView({ nodes, links, graphKey }) {
     const w = svgEl.clientWidth || 800;
     const h = svgEl.clientHeight || 600;
 
-    // Deep copy for D3 mutation
-    const simNodes = nodes.map((n) => ({ ...n }));
+    // ── Saved layout ──────────────────────────────────────────────────────
+    const savedLayout = readSavedLayout();
+
+    // Deep copy for D3 mutation, apply saved positions if available
+    const simNodes = nodes.map((n) => {
+      const saved = savedLayout?.[n.id];
+      return saved
+        ? { ...n, x: saved.x, y: saved.y, fx: saved.x, fy: saved.y } // pinned
+        : { ...n };
+    });
+    simNodesRef.current = simNodes;
+
     const simLinks = links.map((l) => ({
       source: l.source,
       target: l.target,
       type: l.type,
       label: l.label,
     }));
+
+    // ── Degree (연결 수) ──────────────────────────────────────────────────
+    const degreeMap = new Map(simNodes.map((n) => [n.id, 0]));
+    simLinks.forEach((l) => {
+      degreeMap.set(l.source, (degreeMap.get(l.source) || 0) + 1);
+      degreeMap.set(l.target, (degreeMap.get(l.target) || 0) + 1);
+    });
+    const maxDegree = Math.max(...degreeMap.values(), 1);
+
+    const radiusScale = d3.scaleLinear().domain([0, maxDegree]).range([16, 42]);
+    const fillScale = d3.scaleSequential()
+      .domain([0, maxDegree])
+      .interpolator(d3.interpolateRgb('#0f0a1e', '#5b21b6'));
+    const strokeScale = d3.scaleSequential()
+      .domain([0, maxDegree])
+      .interpolator(d3.interpolateRgb('#4c1d95', '#e879f9'));
+
+    const nodeRadius = (d) => radiusScale(degreeMap.get(d.id) || 0);
+    const nodeFill = (d) => fillScale(degreeMap.get(d.id) || 0);
+    const nodeStroke = (d) => strokeScale(degreeMap.get(d.id) || 0);
 
     // ── Defs ──────────────────────────────────────────────────────────────
     const defs = svg.append('defs');
@@ -130,7 +189,7 @@ export default function GraphView({ nodes, links, graphKey }) {
       )
       .force('charge', d3.forceManyBody().strength(-500))
       .force('center', d3.forceCenter(0, 0))
-      .force('collision', d3.forceCollide(NODE_RADIUS + 30));
+      .force('collision', d3.forceCollide((d) => nodeRadius(d) + 20));
 
     // ── Links ─────────────────────────────────────────────────────────────
     const linkGroup = g.append('g').attr('class', 'links');
@@ -175,9 +234,9 @@ export default function GraphView({ nodes, links, graphKey }) {
     nodeEl
       .append('circle')
       .attr('class', 'node-glow-ring')
-      .attr('r', NODE_RADIUS + 6)
+      .attr('r', (d) => nodeRadius(d) + 7)
       .attr('fill', 'none')
-      .attr('stroke', '#7c3aed')
+      .attr('stroke', (d) => nodeStroke(d))
       .attr('stroke-width', 2)
       .attr('opacity', 0);
 
@@ -185,9 +244,9 @@ export default function GraphView({ nodes, links, graphKey }) {
     nodeEl
       .append('circle')
       .attr('class', 'node-circle')
-      .attr('r', NODE_RADIUS)
-      .attr('fill', '#1a1030')
-      .attr('stroke', '#5b21b6')
+      .attr('r', (d) => nodeRadius(d))
+      .attr('fill', (d) => nodeFill(d))
+      .attr('stroke', (d) => nodeStroke(d))
       .attr('stroke-width', 1.5);
 
     // Stereotype label (small, above class name)
@@ -211,9 +270,10 @@ export default function GraphView({ nodes, links, graphKey }) {
       .attr('dy', (d) => (d.stereotype ? '0.8em' : '0.35em'))
       .attr('fill', '#e2e8f0')
       .attr('font-size', (d) => {
-        if (d.id.length > 14) return '8px';
-        if (d.id.length > 9) return '10px';
-        return '11px';
+        const r = nodeRadius(d);
+        const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
+        const adjusted = d.id.length > 12 ? base - 1 : base;
+        return `${Math.max(7, adjusted)}px`;
       })
       .attr('font-weight', '500')
       .attr('font-family', '"SF Mono", "Fira Code", monospace')
@@ -300,9 +360,9 @@ export default function GraphView({ nodes, links, graphKey }) {
 
         d3.select(this)
           .select('.node-circle')
-          .attr('stroke', '#5b21b6')
+          .attr('stroke', (n) => nodeStroke(n))
           .attr('stroke-width', 1.5)
-          .attr('fill', '#1a1030');
+          .attr('fill', (n) => nodeFill(n));
 
         d3.select(this)
           .select('.node-glow-ring')
@@ -342,25 +402,25 @@ export default function GraphView({ nodes, links, graphKey }) {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          return d.source.x + (dx / len) * (NODE_RADIUS + 2);
+          return d.source.x + (dx / len) * (nodeRadius(d.source) + 2);
         })
         .attr('y1', (d) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          return d.source.y + (dy / len) * (NODE_RADIUS + 2);
+          return d.source.y + (dy / len) * (nodeRadius(d.source) + 2);
         })
         .attr('x2', (d) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          return d.target.x - (dx / len) * (NODE_RADIUS + 2);
+          return d.target.x - (dx / len) * (nodeRadius(d.target) + 2);
         })
         .attr('y2', (d) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          return d.target.y - (dy / len) * (NODE_RADIUS + 2);
+          return d.target.y - (dy / len) * (nodeRadius(d.target) + 2);
         });
 
       linkLabelEl
@@ -370,20 +430,13 @@ export default function GraphView({ nodes, links, graphKey }) {
       nodeEl.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
 
-    // Auto-fit only on initial load
-    if (!hasInitialFit.current) {
-      simulation.on('end', () => {
-        handleFit();
-        hasInitialFit.current = true;
-      });
-    }
 
     return () => {
       simulation.stop();
       tooltip.remove();
       svg.on('.zoom', null);
     };
-  }, [nodes, links, graphKey, handleFit]);
+  }, [nodes, links, graphKey, localKey, handleFit]);
 
   // Used relationship types for legend
   const usedTypes = [...new Set(links.map((l) => l.type))];
@@ -400,16 +453,25 @@ export default function GraphView({ nodes, links, graphKey }) {
         </div>
       )}
 
-      {/* Zoom controls */}
+      {/* Controls */}
       <div className="graph-controls">
-        <button className="ctrl-btn" onClick={handleZoomIn} title="확대">
-          +
+        <button className="ctrl-btn" onClick={handleZoomIn} title="확대">+</button>
+        <button className="ctrl-btn" onClick={handleZoomOut} title="축소">−</button>
+        <button className="ctrl-btn fit-btn" onClick={handleFit} title="화면에 맞추기">⊡</button>
+        <div className="ctrl-divider" />
+        <button
+          className={`ctrl-btn ctrl-btn--text ${saveStatus === 'saved' ? 'ctrl-btn--ok' : ''}`}
+          onClick={handleSave}
+          title="현재 레이아웃 저장"
+        >
+          {saveStatus === 'saved' ? '✓' : '저장'}
         </button>
-        <button className="ctrl-btn" onClick={handleZoomOut} title="축소">
-          −
-        </button>
-        <button className="ctrl-btn fit-btn" onClick={handleFit} title="화면에 맞추기">
-          ⊡
+        <button
+          className={`ctrl-btn ctrl-btn--text ${saveStatus === 'no-data' ? 'ctrl-btn--err' : ''}`}
+          onClick={handleLoad}
+          title="저장된 레이아웃 불러오기"
+        >
+          {saveStatus === 'no-data' ? '없음' : '불러오기'}
         </button>
       </div>
 
