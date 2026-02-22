@@ -131,3 +131,108 @@ export function parseMermaidClassDiagram(input) {
     links,
   };
 }
+
+// ── Flowchart parser ───────────────────────────────────────────────────────
+
+const NODE_SHAPE_RE = /^(\w+)(?:\[\[([^\]]*)\]\]|\[\(([^)]*)\)\]|\(\(([^)]*)\)\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\})?$/;
+
+function parseNodeToken(token) {
+  const m = token.trim().match(NODE_SHAPE_RE);
+  if (!m) return null;
+  const id = m[1];
+  const label = m[2] ?? m[3] ?? m[4] ?? m[5] ?? m[6] ?? m[7] ?? null;
+  return { id, label: label !== null ? label.trim() : id };
+}
+
+const PIPE_LABEL_RE  = /^(.+?)\s*(-.->|==>|-->|---)\|([^|]*)\|\s*(.+)$/;
+const SPACE_LABEL_RE = /^(.+?)\s+--\s+(.+?)\s+(-->|==>)\s+(.+)$/;
+const BARE_EDGE_RE   = /^(.+?)\s*(-.->|==>|-->|---)\s*(.+)$/;
+
+export function parseMermaidFlowchart(input) {
+  const nodeMap = new Map();
+  const links = [];
+
+  const OPERATOR_MAP = {
+    '-.->': 'dependency', '==>': 'composition',
+    '-->': 'association', '---': 'link',
+  };
+
+  const addNode = (id, label) => {
+    if (!id) return;
+    if (!nodeMap.has(id)) {
+      nodeMap.set(id, { id, label: label ?? id, members: [], stereotype: null });
+    } else if (label !== null && nodeMap.get(id).label === id) {
+      nodeMap.get(id).label = label;
+    }
+  };
+
+  const lines = input.split('\n').map(l => l.trim())
+    .filter(l => l && !l.startsWith('%%'));
+
+  for (const line of lines) {
+    if (/^(graph|flowchart)\s+\w+/i.test(line)) continue;
+    if (/^subgraph\b/i.test(line) || /^end\s*$/.test(line)) continue;
+    if (/^(style|classDef|class|linkStyle|click)\b/i.test(line)) continue;
+
+    let parsed = false;
+
+    // 1. Pipe label:  A -->|label| B
+    let m = line.match(PIPE_LABEL_RE);
+    if (m) {
+      const s = parseNodeToken(m[1]), t = parseNodeToken(m[4]);
+      if (s && t) {
+        addNode(s.id, s.label !== s.id ? s.label : null);
+        addNode(t.id, t.label !== t.id ? t.label : null);
+        links.push({ source: s.id, target: t.id, type: OPERATOR_MAP[m[2]], label: m[3].trim() });
+        parsed = true;
+      }
+    }
+
+    // 2. Space label:  A -- text --> B
+    if (!parsed) {
+      m = line.match(SPACE_LABEL_RE);
+      if (m) {
+        const s = parseNodeToken(m[1]), t = parseNodeToken(m[4]);
+        if (s && t) {
+          addNode(s.id, s.label !== s.id ? s.label : null);
+          addNode(t.id, t.label !== t.id ? t.label : null);
+          links.push({ source: s.id, target: t.id, type: OPERATOR_MAP[m[3]], label: m[2].trim() });
+          parsed = true;
+        }
+      }
+    }
+
+    // 3. Bare edge:  A --> B
+    if (!parsed) {
+      m = line.match(BARE_EDGE_RE);
+      if (m) {
+        const s = parseNodeToken(m[1]), t = parseNodeToken(m[3]);
+        if (s && t) {
+          addNode(s.id, s.label !== s.id ? s.label : null);
+          addNode(t.id, t.label !== t.id ? t.label : null);
+          links.push({ source: s.id, target: t.id, type: OPERATOR_MAP[m[2]], label: '' });
+          parsed = true;
+        }
+      }
+    }
+
+    // 4. Standalone node declaration:  A[Start]
+    if (!parsed) {
+      const n = parseNodeToken(line);
+      if (n) addNode(n.id, n.label !== n.id ? n.label : null);
+    }
+  }
+
+  return { nodes: Array.from(nodeMap.values()), links };
+}
+
+export function parseMermaid(input) {
+  const first = input.split('\n').map(l => l.trim())
+    .find(l => l && !l.startsWith('%%'));
+  if (!first) return { nodes: [], links: [] };
+
+  if (/^(graph|flowchart)\s+\w+/i.test(first)) {
+    return parseMermaidFlowchart(input);
+  }
+  return parseMermaidClassDiagram(input);
+}

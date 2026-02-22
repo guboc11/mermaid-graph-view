@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import Editor from './components/Editor';
 import GraphView from './components/GraphView';
-import { parseMermaidClassDiagram } from './utils/parseMermaid';
+import { parseMermaid } from './utils/parseMermaid';
 import './App.css';
 
 const DEFAULT_DIAGRAM = `classDiagram
@@ -385,7 +385,7 @@ export default function App() {
   const [graphKey, setGraphKey] = useState(0);
 
   const { nodes, links } = useMemo(
-    () => parseMermaidClassDiagram(code),
+    () => parseMermaid(code),
     [code]
   );
 

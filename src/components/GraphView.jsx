@@ -319,14 +319,14 @@ export default function GraphView({ nodes, links, graphKey }) {
       .attr('font-size', (d) => {
         const r = nodeRadius(d);
         const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
-        const adjusted = d.id.length > 12 ? base - 1 : base;
+        const adjusted = (d.label || d.id).length > 12 ? base - 1 : base;
         return `${Math.max(7, adjusted)}px`;
       })
       .attr('font-weight', '500')
       .attr('font-family', '"SF Mono", "Fira Code", monospace')
       .style('pointer-events', 'none')
       .style('user-select', 'none')
-      .text((d) => d.id);
+      .text((d) => d.label || d.id);
 
     // Pin indicator dot (amber, top-right of node)
     nodeEl
@@ -504,7 +504,7 @@ export default function GraphView({ nodes, links, graphKey }) {
         .attr('font-size', (d) => {
           const r = nodeRadius(d);
           const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
-          const original = Math.max(7, d.id.length > 12 ? base - 1 : base);
+          const original = Math.max(7, (d.label || d.id).length > 12 ? base - 1 : base);
           return `${Math.max(original, TARGET / k)}px`;
         });
 
@@ -521,7 +521,7 @@ export default function GraphView({ nodes, links, graphKey }) {
         .attr('font-size', (d) => {
           const r = nodeRadius(d);
           const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
-          return `${Math.max(7, d.id.length > 12 ? base - 1 : base)}px`;
+          return `${Math.max(7, (d.label || d.id).length > 12 ? base - 1 : base)}px`;
         });
 
       linkLabelEl.attr('font-size', '10px');
