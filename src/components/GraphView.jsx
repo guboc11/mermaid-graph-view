@@ -14,6 +14,14 @@ const REL_STYLES = {
 
 const STORAGE_KEY = 'mgv-layout';
 
+const TIER_LEGEND = [
+  { tier: 'isolated', stroke: '#64748b', label: '고립 (0)' },
+  { tier: 'leaf',     stroke: '#3b82f6', label: 'Leaf (≤33%)' },
+  { tier: 'normal',   stroke: '#10b981', label: 'Normal (≤66%)' },
+  { tier: 'connected',stroke: '#f97316', label: 'Connected (≤90%)' },
+  { tier: 'hub',      stroke: '#ef4444', label: 'Hub (>90%)' },
+];
+
 const readSavedLayout = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
   catch { return null; }
@@ -121,16 +129,27 @@ export default function GraphView({ nodes, links, graphKey }) {
     const maxDegree = Math.max(...degreeMap.values(), 1);
 
     const radiusScale = d3.scaleLinear().domain([0, maxDegree]).range([16, 42]);
-    const fillScale = d3.scaleSequential()
-      .domain([0, maxDegree])
-      .interpolator(d3.interpolateRgb('#0f0a1e', '#5b21b6'));
-    const strokeScale = d3.scaleSequential()
-      .domain([0, maxDegree])
-      .interpolator(d3.interpolateRgb('#4c1d95', '#e879f9'));
+
+    const getNodeTier = (degree, maxDeg) => {
+      if (degree === 0) return 'isolated';
+      const ratio = degree / maxDeg;
+      if (ratio <= 0.33) return 'leaf';
+      if (ratio <= 0.66) return 'normal';
+      if (ratio <= 0.90) return 'connected';
+      return 'hub';
+    };
+
+    const TIER_STYLES = {
+      isolated: { fill: '#1e2a3a', stroke: '#64748b' },
+      leaf:     { fill: '#1e3a5f', stroke: '#3b82f6' },
+      normal:   { fill: '#064e3b', stroke: '#10b981' },
+      connected:{ fill: '#431407', stroke: '#f97316' },
+      hub:      { fill: '#450a0a', stroke: '#ef4444' },
+    };
 
     const nodeRadius = (d) => radiusScale(degreeMap.get(d.id) || 0);
-    const nodeFill = (d) => fillScale(degreeMap.get(d.id) || 0);
-    const nodeStroke = (d) => strokeScale(degreeMap.get(d.id) || 0);
+    const nodeFill = (d) => TIER_STYLES[getNodeTier(degreeMap.get(d.id) || 0, maxDegree)].fill;
+    const nodeStroke = (d) => TIER_STYLES[getNodeTier(degreeMap.get(d.id) || 0, maxDegree)].stroke;
 
     // ── Defs ──────────────────────────────────────────────────────────────
     const defs = svg.append('defs');
@@ -327,9 +346,9 @@ export default function GraphView({ nodes, links, graphKey }) {
 
         d3.select(this)
           .select('.node-circle')
-          .attr('stroke', '#a78bfa')
+          .attr('stroke', (n) => nodeStroke(n))
           .attr('stroke-width', 2.5)
-          .attr('fill', '#2d1a5e');
+          .attr('fill', '#1a1a2e');
 
         d3.select(this)
           .select('.node-glow-ring')
@@ -478,7 +497,7 @@ export default function GraphView({ nodes, links, graphKey }) {
       {/* Help hint */}
       <div className="graph-hint">스크롤 줌 · 드래그 이동 · 노드 호버</div>
 
-      {/* Legend */}
+      {/* Relationship legend */}
       {usedTypes.length > 0 && (
         <div className="graph-legend">
           {usedTypes.map((type) => {
@@ -499,6 +518,23 @@ export default function GraphView({ nodes, links, graphKey }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Node tier legend */}
+      {nodes.length > 0 && (
+        <div className="graph-legend graph-legend--tier">
+          {TIER_LEGEND.map(({ tier, stroke, label }) => (
+            <div key={tier} className="legend-item">
+              <span
+                className="legend-dot"
+                style={{ background: stroke }}
+              />
+              <span className="legend-label" style={{ color: stroke }}>
+                {label}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

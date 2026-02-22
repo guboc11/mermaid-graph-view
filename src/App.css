@@ -274,3 +274,17 @@
   font-family: monospace;
   font-size: 10px;
 }
+
+.graph-legend--tier {
+  bottom: 14px;
+  left: auto;
+  right: 14px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
