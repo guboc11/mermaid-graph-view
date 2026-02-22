@@ -1,16 +1,102 @@
-# React + Vite
+# Mermaid Graph Viewer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An interactive force-directed graph viewer for Mermaid diagrams. Paste a `classDiagram` or `flowchart` definition and explore it as a live, draggable node graph.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+pnpm install
+pnpm dev
+```
 
-## React Compiler
+Open `http://localhost:5173` in your browser.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Supported Diagram Types
 
-## Expanding the ESLint configuration
+The diagram type is detected automatically from the first non-comment line.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Class Diagram
+
+```
+classDiagram
+class Animal {
+  <<abstract>>
+  +name: String
+  +speak() void
+}
+class Dog
+Animal <|-- Dog : inherits
+```
+
+### Flowchart
+
+```
+flowchart TD
+A[Start] -->|success| B[Process]
+B --> C{Branch}
+C -->|yes| D((Done))
+C -->|no| E[Error]
+E -.-> F[(Storage)]
+```
+
+```
+graph LR
+A ==> B
+C --- D
+```
+
+## Edge Types
+
+| Syntax | Type | Color |
+|--------|------|-------|
+| `-->` | Association | Purple |
+| `---` | Link | Gray |
+| `-.->` | Dependency | Red (dashed) |
+| `==>` | Composition | Blue |
+| `<\|--` / `--\|>` | Inheritance | Orange |
+| `--*` / `*--` | Composition | Blue |
+| `--o` / `o--` | Aggregation | Green |
+| `..\|>` / `<\|..` | Realization | Pink (dashed) |
+
+## Node Shapes (Flowchart)
+
+| Syntax | Shape |
+|--------|-------|
+| `A[text]` | Rectangle |
+| `A(text)` | Rounded rectangle |
+| `A((text))` | Circle |
+| `A{text}` | Diamond |
+| `A[[text]]` | Subroutine |
+| `A[(text)]` | Cylinder |
+
+## Interactions
+
+| Action | Effect |
+|--------|--------|
+| Drag node | Move node freely |
+| Double-click node | Pin / unpin node (amber dot indicator) |
+| Hover node | Highlight connected nodes and edges |
+| Scroll / pinch | Zoom in / out |
+| Drag background | Pan |
+| `Space` (hold) | Global flow mode — animates all edges with degree-based coloring |
+| Fit button (`⊡`) | Auto-fit graph to viewport |
+| Save button | Persist node positions to `localStorage` |
+| Load button | Restore saved positions |
+
+## Node Color Tiers
+
+Nodes are colored by their connection count relative to the most-connected node.
+
+| Tier | Condition | Border Color |
+|------|-----------|--------------|
+| Isolated | 0 connections | Gray |
+| Leaf | ≤ 33% of max | Blue |
+| Normal | ≤ 66% of max | Green |
+| Connected | ≤ 90% of max | Orange |
+| Hub | > 90% of max | Red |
+
+## Tech Stack
+
+- React 19 + Vite
+- D3.js (force simulation, zoom, drag)
+- CodeMirror (editor)
