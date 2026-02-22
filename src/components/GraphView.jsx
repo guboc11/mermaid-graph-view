@@ -204,11 +204,16 @@ export default function GraphView({ nodes, links, graphKey }) {
       `);
 
     // ── Zoom ──────────────────────────────────────────────────────────────
+    const globalFlowActive = { current: false };
+
     const g = svg.append('g');
     const zoom = d3
       .zoom()
       .scaleExtent([0.05, 12])
-      .on('zoom', (event) => g.attr('transform', event.transform));
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+        if (globalFlowActive.current) applyGlobalFlow();
+      });
 
     svg.call(zoom);
     // Initial transform: center the origin
@@ -453,10 +458,14 @@ export default function GraphView({ nodes, links, graphKey }) {
         nodeGroup.selectAll('g.node').style('opacity', 1);
         linkEl.style('stroke-opacity', 0.65);
 
-        linkEl
-          .attr('stroke-dasharray', (l) => REL_STYLES[l.type]?.dashed ? '7,4' : null)
-          .attr('stroke', (l) => REL_STYLES[l.type]?.color ?? '#6b7280')
-          .style('animation', null);
+        if (globalFlowActive.current) {
+          applyGlobalFlow();
+        } else {
+          linkEl
+            .attr('stroke-dasharray', (l) => REL_STYLES[l.type]?.dashed ? '7,4' : null)
+            .attr('stroke', (l) => REL_STYLES[l.type]?.color ?? '#6b7280')
+            .style('animation', null);
+        }
 
         d3.select(this)
           .select('.node-circle')
@@ -472,6 +481,66 @@ export default function GraphView({ nodes, links, graphKey }) {
 
         tooltip.style('display', 'none');
       });
+
+    // ── Space bar: global flow toggle ────────────────────────────────────
+    const applyGlobalFlow = () => {
+      linkEl
+        .attr('stroke-dasharray', '10,6')
+        .attr('stroke', (l) => {
+          const srcId = typeof l.source === 'object' ? l.source.id : l.source;
+          const tgtId = typeof l.target === 'object' ? l.target.id : l.target;
+          const srcDeg = degreeMap.get(srcId) ?? 0;
+          const tgtDeg = degreeMap.get(tgtId) ?? 0;
+          if (srcDeg === tgtDeg) return REL_STYLES[l.type]?.color ?? '#6b7280';
+          return srcDeg < tgtDeg ? '#60a5fa' : '#f87171';
+        })
+        .style('animation', 'dash-flow 0.6s linear infinite');
+
+      const k = d3.zoomTransform(svg.node()).k;
+      const TARGET = 12;
+
+      nodeEl.select('text.node-label')
+        .attr('font-size', (d) => {
+          const r = nodeRadius(d);
+          const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
+          const original = Math.max(7, d.id.length > 12 ? base - 1 : base);
+          return `${Math.max(original, TARGET / k)}px`;
+        });
+
+      linkLabelEl.attr('font-size', `${Math.max(10, TARGET / k)}px`);
+    };
+
+    const clearGlobalFlow = () => {
+      linkEl
+        .attr('stroke-dasharray', (l) => REL_STYLES[l.type]?.dashed ? '7,4' : null)
+        .attr('stroke', (l) => REL_STYLES[l.type]?.color ?? '#6b7280')
+        .style('animation', null);
+
+      nodeEl.select('text.node-label')
+        .attr('font-size', (d) => {
+          const r = nodeRadius(d);
+          const base = r < 22 ? 9 : r < 30 ? 10 : r < 38 ? 12 : 13;
+          return `${Math.max(7, d.id.length > 12 ? base - 1 : base)}px`;
+        });
+
+      linkLabelEl.attr('font-size', '10px');
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      e.preventDefault();
+      globalFlowActive.current = true;
+      applyGlobalFlow();
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code !== 'Space') return;
+      globalFlowActive.current = false;
+      clearGlobalFlow();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     // ── Drag ──────────────────────────────────────────────────────────────
     function dragstarted(event, d) {
@@ -537,6 +606,8 @@ export default function GraphView({ nodes, links, graphKey }) {
       simulation.stop();
       tooltip.remove();
       svg.on('.zoom', null);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [nodes, links, graphKey, localKey, handleFit]);
 
@@ -578,7 +649,7 @@ export default function GraphView({ nodes, links, graphKey }) {
       </div>
 
       {/* Help hint */}
-      <div className="graph-hint">스크롤 줌 · 드래그 이동 · 노드 호버 · 더블클릭 핀 고정</div>
+      <div className="graph-hint">스크롤 줌 · 드래그 이동 · 노드 호버 · 더블클릭 핀 고정 · 스페이스 전체 흐름</div>
 
       {/* Relationship legend */}
       {usedTypes.length > 0 && (
