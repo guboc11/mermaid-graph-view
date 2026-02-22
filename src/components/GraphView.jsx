@@ -194,6 +194,15 @@ export default function GraphView({ nodes, links, graphKey }) {
         .attr('opacity', 0.85);
     });
 
+    defs
+      .append('style')
+      .text(`
+        @keyframes dash-flow {
+          from { stroke-dashoffset: 16; }
+          to   { stroke-dashoffset: 0;  }
+        }
+      `);
+
     // ── Zoom ──────────────────────────────────────────────────────────────
     const g = svg.append('g');
     const zoom = d3
@@ -392,6 +401,25 @@ export default function GraphView({ nodes, links, graphKey }) {
           return src === d.id || tgt === d.id ? 1 : 0.05;
         });
 
+        linkEl
+          .attr('stroke-dasharray', (l) => {
+            const src = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+            return src === d.id || tgt === d.id ? '10,6' : null;
+          })
+          .attr('stroke', (l) => {
+            const src = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+            if (src === d.id) return '#f87171'; // out → 붉은 계열
+            if (tgt === d.id) return '#60a5fa'; // in  → 푸른 계열
+            return REL_STYLES[l.type]?.color ?? '#6b7280';
+          })
+          .style('animation', (l) => {
+            const src = typeof l.source === 'object' ? l.source.id : l.source;
+            const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+            return src === d.id || tgt === d.id ? 'dash-flow 0.6s linear infinite' : null;
+          });
+
         d3.select(this)
           .select('.node-circle')
           .attr('stroke', (n) => nodeStroke(n))
@@ -424,6 +452,11 @@ export default function GraphView({ nodes, links, graphKey }) {
       .on('mouseleave', function (event, d) {
         nodeGroup.selectAll('g.node').style('opacity', 1);
         linkEl.style('stroke-opacity', 0.65);
+
+        linkEl
+          .attr('stroke-dasharray', (l) => REL_STYLES[l.type]?.dashed ? '7,4' : null)
+          .attr('stroke', (l) => REL_STYLES[l.type]?.color ?? '#6b7280')
+          .style('animation', null);
 
         d3.select(this)
           .select('.node-circle')
