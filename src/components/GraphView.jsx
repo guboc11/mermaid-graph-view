@@ -35,6 +35,7 @@ export default function GraphView({ nodes, links, graphKey }) {
   const pinnedNodesRef = useRef(new Set());
   const [localKey, setLocalKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saved' | 'no-data'
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleFit = useCallback(() => {
     if (!zoomRef.current || !svgRef.current) return;
@@ -646,6 +647,12 @@ export default function GraphView({ nodes, links, graphKey }) {
         >
           {saveStatus === 'no-data' ? '없음' : '불러오기'}
         </button>
+        <div className="ctrl-divider" />
+        <button
+          className="ctrl-btn ctrl-btn--text"
+          onClick={() => setShowHelp(true)}
+          title="도움말"
+        >?</button>
       </div>
 
       {/* Help hint */}
@@ -689,6 +696,54 @@ export default function GraphView({ nodes, links, graphKey }) {
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {showHelp && (
+        <div className="help-overlay" onClick={() => setShowHelp(false)}>
+          <div className="help-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="help-close" onClick={() => setShowHelp(false)}>✕</button>
+            <h2 className="help-title">사용법</h2>
+
+            <section className="help-section">
+              <h3>📝 다이어그램 작성</h3>
+              <ul>
+                <li>왼쪽 에디터에 Mermaid 문법으로 그래프 입력</li>
+                <li><code>graph TD</code>, <code>flowchart LR</code> 등 방향 지원</li>
+                <li>예: <code>A[노드] --&gt; B[다른 노드]</code></li>
+              </ul>
+            </section>
+
+            <section className="help-section">
+              <h3>🔍 화면 조작</h3>
+              <ul>
+                <li><strong>스크롤</strong> — 줌 인/아웃</li>
+                <li><strong>드래그</strong> — 화면 이동</li>
+                <li><strong>노드 드래그</strong> — 노드 위치 이동</li>
+                <li><strong>더블클릭</strong> — 노드 핀 고정 / 해제</li>
+              </ul>
+            </section>
+
+            <section className="help-section">
+              <h3>✨ 특수 기능</h3>
+              <ul>
+                <li><strong>스페이스바 홀드</strong> — 전체 흐름 애니메이션<br/>
+                  <span className="help-note">파란색 = 상위 → 하위 / 빨간색 = 하위 → 상위</span>
+                </li>
+                <li><strong>노드 호버</strong> — 연결 노드 강조</li>
+                <li><strong>저장 / 불러오기</strong> — 로컬 저장</li>
+              </ul>
+            </section>
+
+            <section className="help-section">
+              <h3>🎯 컨트롤 버튼</h3>
+              <ul>
+                <li><code>+</code> / <code>−</code> — 줌 인 / 줌 아웃</li>
+                <li><code>⊡</code> — 화면에 맞추기</li>
+                <li><code>?</code> — 이 도움말</li>
+              </ul>
+            </section>
+          </div>
         </div>
       )}
     </div>
