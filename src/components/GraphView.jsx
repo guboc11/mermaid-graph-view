@@ -261,7 +261,7 @@ export default function GraphView({ nodes, links, graphKey }) {
       .attr('class', 'node')
       .style('cursor', 'grab');
 
-    // Outer glow ring (hidden by default)
+    // Outer glow ring (hidden by default, visible when pinned)
     nodeEl
       .append('circle')
       .attr('class', 'node-glow-ring')
@@ -269,7 +269,8 @@ export default function GraphView({ nodes, links, graphKey }) {
       .attr('fill', 'none')
       .attr('stroke', (d) => nodeStroke(d))
       .attr('stroke-width', 2)
-      .attr('opacity', 0);
+      .attr('filter', (d) => pinnedNodesRef.current.has(d.id) ? 'url(#node-glow)' : null)
+      .attr('opacity', (d) => pinnedNodesRef.current.has(d.id) ? 0.75 : 0);
 
     // Main circle
     nodeEl
@@ -341,6 +342,10 @@ export default function GraphView({ nodes, links, graphKey }) {
       }
       nodeEl.select('.pin-dot')
         .attr('display', (nd) => pinnedNodesRef.current.has(nd.id) ? null : 'none');
+      nodeEl.select('.node-glow-ring')
+        .attr('filter', (nd) => pinnedNodesRef.current.has(nd.id) ? 'url(#node-glow)' : null)
+        .transition().duration(300)
+        .attr('opacity', (nd) => pinnedNodesRef.current.has(nd.id) ? 0.75 : 0);
     });
 
     // ── Tooltip ───────────────────────────────────────────────────────────
@@ -397,7 +402,7 @@ export default function GraphView({ nodes, links, graphKey }) {
           .select('.node-glow-ring')
           .transition()
           .duration(200)
-          .attr('opacity', 0.5);
+          .attr('opacity', pinnedNodesRef.current.has(d.id) ? 1.0 : 0.5);
 
         if (d.members && d.members.length > 0) {
           const membersHtml = d.members
@@ -416,7 +421,7 @@ export default function GraphView({ nodes, links, graphKey }) {
           .style('left', event.clientX - rect.left + 14 + 'px')
           .style('top', event.clientY - rect.top - 12 + 'px');
       })
-      .on('mouseleave', function () {
+      .on('mouseleave', function (event, d) {
         nodeGroup.selectAll('g.node').style('opacity', 1);
         linkEl.style('stroke-opacity', 0.65);
 
@@ -430,7 +435,7 @@ export default function GraphView({ nodes, links, graphKey }) {
           .select('.node-glow-ring')
           .transition()
           .duration(200)
-          .attr('opacity', 0);
+          .attr('opacity', pinnedNodesRef.current.has(d.id) ? 0.75 : 0);
 
         tooltip.style('display', 'none');
       });
