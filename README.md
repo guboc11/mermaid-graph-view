@@ -1,6 +1,25 @@
 # Mermaid Graph Viewer
 
-An interactive force-directed graph viewer for Mermaid diagrams. Paste a `classDiagram` or `flowchart` definition and explore it as a live, draggable node graph.
+Turn your static Mermaid diagrams into interactive, draggable force-directed graphs — shareable via URL hash.
+
+**[→ Live Demo](https://mermaid-graph-view.onrender.com)**
+
+## Why
+
+Static Mermaid diagrams break down once you have 20+ nodes — the fixed layout
+makes exploration painful and sharing "look at this cluster" requires screenshots.
+
+Mermaid Graph Viewer converts your syntax into a D3.js force simulation where
+you can drag nodes freely, highlight connections on hover, and share the exact
+diagram state via a URL hash. No backend. No sign-up.
+
+## Key Features
+
+- **Drag-and-drop nodes** — reposition freely with force simulation
+- **Edge flow animation** — hold `Space` to animate all edges
+- **Hover highlighting** — see connected nodes and edges instantly
+- **URL hash sharing** — current diagram encoded in URL, no server needed
+- **Node color tiers** — hubs vs leaves visualized by connection count
 
 ## Getting Started
 
@@ -45,6 +64,20 @@ A ==> B
 C --- D
 ```
 
+## Interactions
+
+| Action | Effect |
+|--------|--------|
+| Drag node | Move node freely |
+| Double-click node | Pin / unpin node (amber dot indicator) |
+| Hover node | Highlight connected nodes and edges |
+| Scroll / pinch | Zoom in / out |
+| Drag background | Pan |
+| `Space` (hold) | Global flow mode — animates all edges with degree-based coloring |
+| Fit button (`⊡`) | Auto-fit graph to viewport |
+| Save button | Persist node positions to `localStorage` |
+| Load button | Restore saved positions |
+
 ## Edge Types
 
 | Syntax | Type | Color |
@@ -68,20 +101,6 @@ C --- D
 | `A{text}` | Diamond |
 | `A[[text]]` | Subroutine |
 | `A[(text)]` | Cylinder |
-
-## Interactions
-
-| Action | Effect |
-|--------|--------|
-| Drag node | Move node freely |
-| Double-click node | Pin / unpin node (amber dot indicator) |
-| Hover node | Highlight connected nodes and edges |
-| Scroll / pinch | Zoom in / out |
-| Drag background | Pan |
-| `Space` (hold) | Global flow mode — animates all edges with degree-based coloring |
-| Fit button (`⊡`) | Auto-fit graph to viewport |
-| Save button | Persist node positions to `localStorage` |
-| Load button | Restore saved positions |
 
 ## Node Color Tiers
 
