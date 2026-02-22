@@ -32,6 +32,7 @@ export default function GraphView({ nodes, links, graphKey }) {
   const containerRef = useRef(null);
   const zoomRef = useRef(null);
   const simNodesRef = useRef([]);
+  const pinnedNodesRef = useRef(new Set());
   const [localKey, setLocalKey] = useState(0);
   const [saveStatus, setSaveStatus] = useState(null); // null | 'saved' | 'no-data'
 
@@ -59,7 +60,11 @@ export default function GraphView({ nodes, links, graphKey }) {
     if (simNodesRef.current.length === 0) return;
     const positions = {};
     simNodesRef.current.forEach((n) => {
-      positions[n.id] = { x: Math.round(n.x || 0), y: Math.round(n.y || 0) };
+      positions[n.id] = {
+        x: Math.round(n.x || 0),
+        y: Math.round(n.y || 0),
+        pinned: pinnedNodesRef.current.has(n.id),
+      };
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
     setSaveStatus('saved');
@@ -104,12 +109,19 @@ export default function GraphView({ nodes, links, graphKey }) {
     // ── Saved layout ──────────────────────────────────────────────────────
     const savedLayout = readSavedLayout();
 
+    // Clear pins for this graph render
+    pinnedNodesRef.current.clear();
+
     // Deep copy for D3 mutation, apply saved positions if available
     const simNodes = nodes.map((n) => {
       const saved = savedLayout?.[n.id];
-      return saved
-        ? { ...n, x: saved.x, y: saved.y } // 초기 위치만 설정, 핀 고정 없음
-        : { ...n };
+      if (saved) {
+        if (saved.pinned) pinnedNodesRef.current.add(n.id);
+        return saved.pinned
+          ? { ...n, x: saved.x, y: saved.y, fx: saved.x, fy: saved.y }
+          : { ...n, x: saved.x, y: saved.y };
+      }
+      return { ...n };
     });
     simNodesRef.current = simNodes;
 
@@ -203,11 +215,11 @@ export default function GraphView({ nodes, links, graphKey }) {
         d3
           .forceLink(simLinks)
           .id((d) => d.id)
-          .distance(140)
-          .strength(0.4)
+          .distance(180)
+          .strength(0.3)
       )
-      .force('charge', d3.forceManyBody().strength(-500))
-      .force('center', d3.forceCenter(0, 0))
+      .force('charge', d3.forceManyBody().strength(-900))
+      .force('center', d3.forceCenter(0, 0).strength(0.05))
       .force('collision', d3.forceCollide((d) => nodeRadius(d) + 20));
 
     // ── Links ─────────────────────────────────────────────────────────────
@@ -299,6 +311,37 @@ export default function GraphView({ nodes, links, graphKey }) {
       .style('pointer-events', 'none')
       .style('user-select', 'none')
       .text((d) => d.id);
+
+    // Pin indicator dot (amber, top-right of node)
+    nodeEl
+      .append('circle')
+      .attr('class', 'pin-dot')
+      .attr('r', 4)
+      .attr('cx', (d) => nodeRadius(d) - 3)
+      .attr('cy', (d) => -(nodeRadius(d) - 3))
+      .attr('fill', '#f59e0b')
+      .attr('stroke', '#78350f')
+      .attr('stroke-width', 1)
+      .attr('display', (d) =>
+        pinnedNodesRef.current.has(d.id) ? null : 'none'
+      );
+
+    // Double-click to toggle pin
+    nodeEl.on('dblclick', (event, d) => {
+      event.stopPropagation();
+      if (pinnedNodesRef.current.has(d.id)) {
+        pinnedNodesRef.current.delete(d.id);
+        d.fx = null;
+        d.fy = null;
+        simulation.alphaTarget(0.1).restart();
+      } else {
+        pinnedNodesRef.current.add(d.id);
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      nodeEl.select('.pin-dot')
+        .attr('display', (nd) => pinnedNodesRef.current.has(nd.id) ? null : 'none');
+    });
 
     // ── Tooltip ───────────────────────────────────────────────────────────
     const tooltip = d3
@@ -405,8 +448,10 @@ export default function GraphView({ nodes, links, graphKey }) {
     }
     function dragended(event, d) {
       if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
+      if (!pinnedNodesRef.current.has(d.id)) {
+        d.fx = null;
+        d.fy = null;
+      }
       d3.select(this).style('cursor', 'grab');
     }
 
@@ -495,7 +540,7 @@ export default function GraphView({ nodes, links, graphKey }) {
       </div>
 
       {/* Help hint */}
-      <div className="graph-hint">스크롤 줌 · 드래그 이동 · 노드 호버</div>
+      <div className="graph-hint">스크롤 줌 · 드래그 이동 · 노드 호버 · 더블클릭 핀 고정</div>
 
       {/* Relationship legend */}
       {usedTypes.length > 0 && (
