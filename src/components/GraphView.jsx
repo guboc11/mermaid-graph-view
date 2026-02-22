@@ -703,44 +703,44 @@ export default function GraphView({ nodes, links, graphKey }) {
         <div className="help-overlay" onClick={() => setShowHelp(false)}>
           <div className="help-modal" onClick={(e) => e.stopPropagation()}>
             <button className="help-close" onClick={() => setShowHelp(false)}>✕</button>
-            <h2 className="help-title">사용법</h2>
+            <h2 className="help-title">How to Use</h2>
 
             <section className="help-section">
-              <h3>📝 다이어그램 작성</h3>
+              <h3>📝 Writing a Diagram</h3>
               <ul>
-                <li>왼쪽 에디터에 Mermaid 문법으로 그래프 입력</li>
-                <li><code>graph TD</code>, <code>flowchart LR</code> 등 방향 지원</li>
-                <li>예: <code>A[노드] --&gt; B[다른 노드]</code></li>
+                <li>Type a Mermaid diagram in the left editor — the graph updates live</li>
+                <li>Supports <code>classDiagram</code>, <code>graph TD</code>, <code>flowchart LR</code>, and all direction variants</li>
+                <li>Example: <code>A[Node] --&gt; B[Other]</code></li>
               </ul>
             </section>
 
             <section className="help-section">
-              <h3>🔍 화면 조작</h3>
+              <h3>🔍 Navigation</h3>
               <ul>
-                <li><strong>스크롤</strong> — 줌 인/아웃</li>
-                <li><strong>드래그</strong> — 화면 이동</li>
-                <li><strong>노드 드래그</strong> — 노드 위치 이동</li>
-                <li><strong>더블클릭</strong> — 노드 핀 고정 / 해제</li>
+                <li><strong>Scroll / pinch</strong> — zoom in / out</li>
+                <li><strong>Drag background</strong> — pan the canvas</li>
+                <li><strong>Drag node</strong> — move a node</li>
+                <li><strong>Double-click node</strong> — pin / unpin node position</li>
               </ul>
             </section>
 
             <section className="help-section">
-              <h3>✨ 특수 기능</h3>
+              <h3>✨ Special Features</h3>
               <ul>
-                <li><strong>스페이스바 홀드</strong> — 전체 흐름 애니메이션<br/>
-                  <span className="help-note">파란색 = 상위 → 하위 / 빨간색 = 하위 → 상위</span>
+                <li><strong>Hold Space</strong> — global flow animation<br/>
+                  <span className="help-note">Blue = low → high degree / Red = high → low degree</span>
                 </li>
-                <li><strong>노드 호버</strong> — 연결 노드 강조</li>
-                <li><strong>저장 / 불러오기</strong> — 로컬 저장</li>
+                <li><strong>Hover node</strong> — highlight connected nodes and edges</li>
+                <li><strong>Save / Load</strong> — persist node positions in localStorage</li>
               </ul>
             </section>
 
             <section className="help-section">
-              <h3>🎯 컨트롤 버튼</h3>
+              <h3>🎯 Toolbar</h3>
               <ul>
-                <li><code>+</code> / <code>−</code> — 줌 인 / 줌 아웃</li>
-                <li><code>⊡</code> — 화면에 맞추기</li>
-                <li><code>?</code> — 이 도움말</li>
+                <li><code>+</code> / <code>−</code> — zoom in / out</li>
+                <li><code>⊡</code> — fit graph to viewport</li>
+                <li><code>?</code> — this help</li>
               </ul>
             </section>
           </div>
