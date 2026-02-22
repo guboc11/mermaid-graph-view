@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import LZString from 'lz-string';
 import Editor from './components/Editor';
 import GraphView from './components/GraphView';
 import { parseMermaid } from './utils/parseMermaid';
@@ -381,17 +382,42 @@ classDef peripheral fill:#d9f2d9,stroke:#2f6b2f,stroke-width:1px,color:#1f3d1f
 `;
 
 export default function App() {
-  const [code, setCode] = useState(DEFAULT_DIAGRAM);
+  const [code, setCode] = useState(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return DEFAULT_DIAGRAM;
+    const decoded = LZString.decompressFromEncodedURIComponent(hash);
+    return decoded ?? DEFAULT_DIAGRAM;
+  });
   const [graphKey, setGraphKey] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const { nodes, links } = useMemo(
     () => parseMermaid(code),
     [code]
   );
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!code.trim()) {
+        history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+      const compressed = LZString.compressToEncodedURIComponent(code);
+      history.replaceState(null, '', '#' + compressed);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [code]);
+
   const handleReset = () => {
     localStorage.removeItem('mgv-layout');
     setGraphKey((k) => k + 1);
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
@@ -405,6 +431,13 @@ export default function App() {
           <span className="app-stats">
             {nodes.length} nodes · {links.length} edges
           </span>
+          <button
+            className={`share-btn${copied ? ' share-btn--copied' : ''}`}
+            onClick={handleShare}
+            title="공유 링크 복사"
+          >
+            {copied ? '✓ Copied!' : '⤴ Share'}
+          </button>
           <button className="reset-btn" onClick={handleReset} title="레이아웃 초기화">
             ↺ Reset
           </button>
