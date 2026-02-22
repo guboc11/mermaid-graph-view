@@ -108,7 +108,7 @@ export default function GraphView({ nodes, links, graphKey }) {
     const simNodes = nodes.map((n) => {
       const saved = savedLayout?.[n.id];
       return saved
-        ? { ...n, x: saved.x, y: saved.y, fx: saved.x, fy: saved.y } // pinned
+        ? { ...n, x: saved.x, y: saved.y } // 초기 위치만 설정, 핀 고정 없음
         : { ...n };
     });
     simNodesRef.current = simNodes;
